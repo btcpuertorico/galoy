@@ -1,4 +1,4 @@
-import { GraphQLSchema, printSchema } from "graphql"
+import { GraphQLSchema, lexicographicSortSchema, printSchema } from "graphql"
 
 import { ALL_INTERFACE_TYPES } from "@graphql/types"
 import QueryType from "./queries"
@@ -16,5 +16,9 @@ export const gqlMainSchema = new GraphQLSchema({
 if (isDev) {
   import("@services/fs").then(({ writeSDLFile }) => {
     writeSDLFile(__dirname + "/schema.graphql", printSchema(gqlMainSchema))
+    writeSDLFile(
+      __dirname + "/lexicographic-sort-schema.graphql",
+      printSchema(lexicographicSortSchema(gqlMainSchema)),
+    )
   })
 }
