@@ -4,13 +4,7 @@ import { ALL_INTERFACE_TYPES } from "@graphql/types"
 
 import QueryType from "./queries"
 import MutationType from "./mutations"
-import { isDev } from "@core/utils"
-
-export const gqlAdminSchema = new GraphQLSchema({
-  query: QueryType,
-  mutation: MutationType,
-  types: ALL_INTERFACE_TYPES,
-})
+import { isDev } from "@config/app"
 
 if (isDev) {
   import("@services/fs").then(({ writeSDLFile }) => {
@@ -21,3 +15,9 @@ if (isDev) {
     )
   })
 }
+
+export const gqlAdminSchema = new GraphQLSchema({
+  query: QueryType,
+  mutation: MutationType,
+  types: ALL_INTERFACE_TYPES,
+})

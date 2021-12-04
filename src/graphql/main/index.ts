@@ -4,14 +4,7 @@ import { ALL_INTERFACE_TYPES } from "@graphql/types"
 import QueryType from "./queries"
 import MutationType from "./mutations"
 import SubscriptionType from "./subscriptions"
-import { isDev } from "@core/utils"
-
-export const gqlMainSchema = new GraphQLSchema({
-  query: QueryType,
-  mutation: MutationType,
-  subscription: SubscriptionType,
-  types: ALL_INTERFACE_TYPES,
-})
+import { isDev } from "@config/app"
 
 if (isDev) {
   import("@services/fs").then(({ writeSDLFile }) => {
@@ -22,3 +15,10 @@ if (isDev) {
     )
   })
 }
+
+export const gqlMainSchema = new GraphQLSchema({
+  query: QueryType,
+  mutation: MutationType,
+  subscription: SubscriptionType,
+  types: ALL_INTERFACE_TYPES,
+})

@@ -302,8 +302,8 @@ type BTCWallet implements Wallet {
 
 type Query {
   allLevels: [AccountLevel!]!
-  userDetailsByPhone(phone: Phone!): User!
-  userDetailsByUsername(username: Username!): User!
+  accountDetailsByUserPhone(phone: Phone!): AccountDetail!
+  accountDetailsByUsername(username: Username!): AccountDetail!
   transactionById(id: ID!): Transaction
   transactionsByHash(hash: PaymentHash!): [Transaction]
   lightningInvoice(hash: PaymentHash!): LightningInvoice!
@@ -315,15 +315,27 @@ enum AccountLevel {
   TWO
 }
 
-type User {
+type AccountDetail {
   id: ID!
-  phone: Phone!
   username: Username
-  language: Language!
   level: AccountLevel
   status: AccountStatus
   title: String
+  owner: User!
   coordinates: Coordinates
+  createdAt: Timestamp!
+}
+
+enum AccountStatus {
+  LOCKED
+  ACTIVE
+}
+
+type User {
+  id: ID!
+  phone: Phone!
+  language: Language!
+  defaultAccount: AccountDetail
   createdAt: Timestamp!
 }
 
@@ -333,11 +345,6 @@ Phone number which includes country code
 scalar Phone
 
 scalar Language
-
-enum AccountStatus {
-  LOCKED
-  ACTIVE
-}
 
 type Coordinates {
   longitude: Float!
@@ -382,9 +389,9 @@ scalar LnPubkey
 type Mutation {
   userRequestAuthCode(input: UserRequestAuthCodeInput!): SuccessPayload!
   userLogin(input: UserLoginInput!): AuthTokenPayload!
-  userUpdateLevel(input: UserUpdateLevelInput!): UserDetailPayload!
-  userUpdateStatus(input: UserUpdateStatusInput!): UserDetailPayload!
-  businessUpdateMapInfo(input: BusinessUpdateMapInfoInput!): UserDetailPayload!
+  accountUpdateLevel(input: AccountUpdateLevelInput!): AccountDetailPayload!
+  accountUpdateStatus(input: UserUpdateStatusInput!): AccountDetailPayload!
+  businessUpdateMapInfo(input: BusinessUpdateMapInfoInput!): AccountDetailPayload!
 }
 
 type SuccessPayload {
@@ -416,12 +423,12 @@ An authentication code valid for a single use
 """
 scalar OneTimeAuthCode
 
-type UserDetailPayload {
+type AccountDetailPayload {
   errors: [Error!]!
-  userDetails: User
+  accountDetails: AccountDetail
 }
 
-input UserUpdateLevelInput {
+input AccountUpdateLevelInput {
   uid: ID!
   level: AccountLevel!
 }
