@@ -28,6 +28,7 @@ export class CouldNotFindWalletFromOnChainAddressesError extends CouldNotFindErr
 
 export class ValidationError extends DomainError {}
 export class InvalidSatoshiAmount extends ValidationError {}
+export class InvalidScanDepthAmount extends ValidationError {}
 export class SatoshiAmountRequiredError extends ValidationError {}
 export class InvalidUsername extends ValidationError {}
 export class InvalidPublicWalletId extends ValidationError {}
