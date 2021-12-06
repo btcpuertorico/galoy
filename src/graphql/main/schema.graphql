@@ -1,121 +1,54 @@
-type Query {
-  globals: Globals
-  me: User
-  usernameAvailable(username: Username!): Boolean
-  userDefaultWalletId(username: Username!): WalletId!
-  businessMapMarkers: [MapMarker]
-  mobileVersions: [MobileVersions]
-  quizQuestions: [QuizQuestion]
-  btcPriceList(range: PriceGraphRange!): [PricePoint]
-  onChainTxFee(
-    walletId: WalletId!
-    address: OnChainAddress!
-    amount: SatAmount!
-    targetConfirmations: TargetConfirmations = 1
-  ): OnChainTxFee!
-  accountApiKeys: [AccountApiKeyHashed]
+type InputError implements Error {
+  message: String!
+  path: [String]
+  code: InputErrorCode!
 }
 
-"""
-Provides global settings for the application which might have an impact for the user.
-"""
-type Globals {
-  """
-  A list of public keys for the running lightning nodes.
-  This can be used to know if an invoice belongs to one of our nodes.
-  """
-  nodesIds: [String!]!
+interface Error {
+  message: String!
+  path: [String]
 }
 
-type User {
+enum InputErrorCode {
+  INVALID_INPUT
+  VALUE_TOO_SHORT
+  VALUE_TOO_LONG
+  VALUE_NOT_ALLOWED
+}
+
+type PaymentError implements Error {
+  message: String!
+  path: [String]
+  code: PaymentErrorCode!
+}
+
+enum PaymentErrorCode {
+  ACCOUNT_LOCKED
+  LIMIT_EXCEEDED
+  INSUFFICENT_BALANCE
+  INVOICE_PAID
+  NO_LIQUIDITY
+  NO_ROUTE
+}
+
+type ConsumerAccount implements Account {
   id: ID!
-
-  """
-  Phone number with international calling code.
-  """
-  phone: Phone!
-
-  """
-  Optional immutable user friendly identifier.
-  """
-  username: Username
-
-  """
-  Preferred language for user.
-  When value is 'default' the intent is to use preferred language from OS settings.
-  """
-  language: Language!
-
-  """
-  List the quiz questions the user may have completed.
-  """
-  quizQuestions: [UserQuizQuestion!]!
-
-  """
-  Get full list of contacts.
-  Can include the transactions associated with each contact.
-  """
-  contacts: [UserContact!]!
-
-  """
-  Get single contact details.
-  Can include the transactions associated with the contact.
-  """
-  contactByUsername(username: Username!): UserContact!
-  twoFAEnabled: Boolean
-  createdAt: Timestamp!
-  defaultAccount: Account!
+  wallets: [Wallet!]!
+  defaultWalletId: WalletId!
+  csvTransactions(walletIds: [WalletId!]!): String!
 }
 
-"""
-Phone number which includes country code
-"""
-scalar Phone
-
-"""
-Unique identifier of a user
-"""
-scalar Username
-
-scalar Language
-
-type UserQuizQuestion {
-  question: QuizQuestion!
-  completed: Boolean!
-}
-
-type QuizQuestion {
+interface Account {
   id: ID!
-
-  """
-  The earn reward in Satoshis for the quiz question
-  """
-  earnAmount: SatAmount!
+  wallets: [Wallet!]!
+  defaultWalletId: WalletId!
+  csvTransactions(walletIds: [WalletId!]!): String!
 }
 
-"""
-(Positive) Satoshi amount (i.g. quiz earning)
-"""
-scalar SatAmount
-
-type UserContact {
-  id: Username!
-
-  """
-  Actual identifier of the contact.
-  """
-  username: Username!
-
-  """
-  Alias the user can set for this contact.
-  Only the user can see the alias attached to their contact.
-  """
-  alias: ContactAlias
-  transactionsCount: Int!
-
-  """
-  Paginated list of transactions sent to/from this contact.
-  """
+interface Wallet {
+  id: ID!
+  walletCurrency: WalletCurrency!
+  balance: SignedAmount!
   transactions(
     """
     Returns the items in the list that come after the specified cursor.
@@ -139,10 +72,14 @@ type UserContact {
   ): TransactionConnection
 }
 
+enum WalletCurrency {
+  BTC
+}
+
 """
-An alias name that a user can set for a wallet (with which they have transactions)
+An amount (of a currency) that can be negative (i.g. in a transaction)
 """
-scalar ContactAlias
+scalar SignedAmount
 
 """
 A connection to a list of items.
@@ -433,14 +370,71 @@ type User {
 }
 
 """
-An amount (of a currency) that can be negative (i.g. in a transaction)
+Phone number which includes country code
 """
-scalar SignedAmount
+scalar Phone
+
+scalar Language
+
+type UserQuizQuestion {
+  question: QuizQuestion!
+  completed: Boolean!
+}
+
+type QuizQuestion {
+  id: ID!
+
+  """
+  The earn reward in Satoshis for the quiz question
+  """
+  earnAmount: SatAmount!
+}
+
+type UserContact {
+  id: Username!
+
+  """
+  Actual identifier of the contact.
+  """
+  username: Username!
+
+  """
+  Alias the user can set for this contact.
+  Only the user can see the alias attached to their contact.
+  """
+  alias: ContactAlias
+  transactionsCount: Int!
+
+  """
+  Paginated list of transactions sent to/from this contact.
+  """
+  transactions(
+    """
+    Returns the items in the list that come after the specified cursor.
+    """
+    after: String
+
+    """
+    Returns the first n items from the list.
+    """
+    first: Int
+
+    """
+    Returns the items in the list that come before the specified cursor.
+    """
+    before: String
+
+    """
+    Returns the last n items from the list.
+    """
+    last: Int
+  ): TransactionConnection
+}
 
 """
-Unique identifier of a user
+An alias name that a user can set for a wallet (with which they have transactions)
 """
-scalar WalletId
+scalar ContactAlias
 
 type MapMarker {
   username: Username
@@ -491,11 +485,6 @@ type OnChainTxFee {
 (Positive) Number of blocks in which the transaction is expected to be confirmed
 """
 scalar TargetConfirmations
-
-"""
-An address for an on-chain bitcoin destination
-"""
-scalar OnChainAddress
 
 type AccountApiKeyHashed {
   label: AccountApiKeyLabel!
@@ -550,11 +539,6 @@ type Mutation {
 type SuccessPayload {
   errors: [Error!]!
   success: Boolean
-}
-
-interface Error {
-  message: String!
-  path: [String]
 }
 
 input UserRequestAuthCodeInput {
@@ -854,8 +838,6 @@ enum TxNotificationType {
   IntraLedgerReceipt
   IntraLedgerPayment
 }
-
-scalar OnChainTxHash
 
 type IntraLedgerUpdate {
   txNotificationType: TxNotificationType!

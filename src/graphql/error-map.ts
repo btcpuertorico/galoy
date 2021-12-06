@@ -13,6 +13,7 @@ import {
   RouteFindingError,
   InvalidCoordinatesError,
   InvalidBusinessTitleLengthError,
+  RewardInsufficientBalanceError,
 } from "@graphql/error"
 import { baseLogger } from "@services/logger"
 
@@ -143,6 +144,9 @@ export const mapError = (error: ApplicationError): CustomApolloError => {
     case "InvalidBusinessTitleLengthError":
       return new InvalidBusinessTitleLengthError({ message, logger: baseLogger })
 
+    case "RewardInsufficientBalanceError":
+      return new RewardInsufficientBalanceError({ message, logger: baseLogger })
+
     // ----------
     // Unhandled below here
     // ----------
@@ -221,6 +225,9 @@ export const mapError = (error: ApplicationError): CustomApolloError => {
     case "CouldNotFindAccountFromPhoneError":
     case "PhoneProviderServiceError":
     case "UnknownPhoneProviderServiceError":
+    case "RewardMissingMetadataError":
+    case "RewardNonValidTypeError":
+    case "RewardAlreadyPresentError":
       return new UnknownClientError({ message, logger: baseLogger })
 
     default:

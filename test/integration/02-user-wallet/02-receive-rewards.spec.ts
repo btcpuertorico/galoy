@@ -3,14 +3,17 @@ import { MS_PER_DAY, onboardingEarn } from "@config/app"
 import { checkIsBalanced, getAndCreateUserWallet } from "test/helpers"
 import { getBTCBalance } from "test/helpers/wallet"
 import { resetSelfWalletIdLimits } from "test/helpers/rate-limit"
-
+import { addEarn } from "@app/accounts/add-earn"
 let userWallet1
 
-const earnsToGet = ["whereBitcoinExist", "whyStonesShellGold", "NoCounterfeitMoney"]
+const onBoardingEarnIds = [
+  "whereBitcoinExist" as QuizQuestionId,
+  "whyStonesShellGold" as QuizQuestionId,
+  "NoCounterfeitMoney" as QuizQuestionId,
+]
 const onBoardingEarnAmt: number = Object.keys(onboardingEarn)
-  .filter((k) => find(earnsToGet, (o) => o === k))
+  .filter((k) => find(onBoardingEarnIds, (o) => o === k))
   .reduce((p, k) => p + onboardingEarn[k], 0)
-const onBoardingEarnIds: string[] = earnsToGet
 
 // required to avoid withdrawalLimit validation
 const date = Date.now() + 2 * MS_PER_DAY
@@ -35,7 +38,13 @@ describe("UserWallet - addEarn", () => {
     const initialBalance = await getBTCBalance(userWallet1.user.id)
 
     const getAndVerifyRewards = async () => {
-      await userWallet1.addEarn(onBoardingEarnIds)
+      const promises = onBoardingEarnIds.map((onBoardingEarnId) =>
+        addEarn({
+          id: onBoardingEarnId as QuizQuestionId,
+          aid: userWallet1.user.id,
+        }),
+      )
+      await Promise.all(promises)
       const finalBalance = await getBTCBalance(userWallet1.user.id)
       let rewards = onBoardingEarnAmt
       if (difference(onBoardingEarnIds, userWallet1.user.earn).length === 0) {
@@ -43,6 +52,7 @@ describe("UserWallet - addEarn", () => {
       }
       expect(finalBalance).toBe(initialBalance + rewards)
       await checkIsBalanced()
+      console.log({ initialBalance, finalBalance })
     }
 
     await getAndVerifyRewards()

@@ -1,18 +1,18 @@
-import { getWalletByPublicId, intraledgerPaymentSend } from "@app/wallets"
 import { getUsernameFromWalletPublicId } from "@app/users"
+import { intraledgerPaymentSendUsername } from "@app/wallets"
 import { checkedToWalletPublicId } from "@domain/wallets"
+import { mapError } from "@graphql/error-map"
 import { GT } from "@graphql/index"
-
 import PaymentSendPayload from "@graphql/types/payload/payment-send"
 import Memo from "@graphql/types/scalar/memo"
 import SatAmount from "@graphql/types/scalar/sat-amount"
 import WalletId from "@graphql/types/scalar/wallet-id"
-import { mapError } from "@graphql/error-map"
+import { WalletsRepository } from "@services/mongoose"
 
 const IntraLedgerPaymentSendInput = new GT.Input({
   name: "IntraLedgerPaymentSendInput",
   fields: () => ({
-    walletId: { type: GT.NonNull(WalletId) },
+    walletId: { type: GT.NonNull(WalletId) }, // TODO: rename senderWalletId
     recipientWalletId: { type: GT.NonNull(WalletId) },
     amount: { type: GT.NonNull(SatAmount) },
     memo: { type: Memo },
@@ -32,9 +32,9 @@ const IntraLedgerPaymentSendMutation = GT.Field({
       }
     }
 
-    const wallet = await getWalletByPublicId(walletId)
-    if (wallet instanceof Error) {
-      const appErr = mapError(wallet)
+    const senderWalletPublicId = checkedToWalletPublicId(walletId)
+    if (senderWalletPublicId instanceof Error) {
+      const appErr = mapError(senderWalletPublicId)
       return { errors: [{ message: appErr.message }] }
     }
 
@@ -44,18 +44,26 @@ const IntraLedgerPaymentSendMutation = GT.Field({
       return { errors: [{ message: appErr.message }] }
     }
 
+    // FIXME: this logic below should be in app/ not graphql/
+    const senderWallet = await WalletsRepository().findByPublicId(senderWalletPublicId)
+    if (senderWallet instanceof Error) {
+      const appErr = mapError(senderWallet)
+      return { errors: [{ message: appErr.message }] }
+    }
+
+    // TODO: recipientUsername should become optional for IntraLedgerPaymentSendInput
     const recipientUsername = await getUsernameFromWalletPublicId(recipientWalletPublicId)
     if (recipientUsername instanceof Error) {
       const appErr = mapError(recipientUsername)
       return { errors: [{ message: appErr.message }] }
     }
 
-    const status = await intraledgerPaymentSend({
+    const status = await intraledgerPaymentSendUsername({
       recipientUsername,
       memo,
       amount,
-      walletId: wallet.id,
-      userId: user.id,
+      payerWalletId: senderWallet.id,
+      payerUserId: user.id,
       logger,
     })
     if (status instanceof Error) {

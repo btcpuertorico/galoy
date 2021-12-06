@@ -2,12 +2,11 @@ import { getIpConfig } from "@config/app"
 import { RepositoryError } from "@domain/errors"
 import { IpFetcherServiceError } from "@domain/ipfetcher"
 import { IpFetcher } from "@services/ipfetcher"
-import { UsersRepository } from "@services/mongoose"
+import { AccountsRepository, UsersRepository } from "@services/mongoose"
 import { UsersIpRepository } from "@services/mongoose/users-ips"
 import {
   addAttributesToCurrentSpan,
   asyncRunInSpan,
-  ENDUSER_ALIAS,
   SemanticAttributes,
 } from "@services/tracing"
 
@@ -33,8 +32,9 @@ export const getUserForLogin = async ({
         return user
       }
       addAttributesToCurrentSpan({
-        [ENDUSER_ALIAS]: user.username,
+        [SemanticAttributes.ENDUSER_ID]: user.id,
       })
+
       // this routing run asynchrously, to update metadata on the background
       updateUserIPsInfo({ userId, ip, logger } as {
         userId: UserId
@@ -118,9 +118,8 @@ const updateUserIPsInfo = async ({
 export const getUsernameFromWalletPublicId = async (
   walletPublicId: WalletPublicId,
 ): Promise<Username | Error> => {
-  const user = await users.findByWalletPublicId(walletPublicId)
+  const account = await AccountsRepository().findByWalletPublicId(walletPublicId)
+  if (account instanceof Error) return account
 
-  if (user instanceof Error) return user
-
-  return user.username
+  return account.username
 }
